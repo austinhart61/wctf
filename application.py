@@ -2,6 +2,7 @@ import serial
 import RPi.GPIO as GPIO
 import threading
 import random
+import time
 
 # setup the GPIO pins / transceiver
 IP = "70.150.145.199".encode()
@@ -17,7 +18,7 @@ bauds = [1200, 2400, 4800, 9600, 19200, 38400, 57600, 115200]
 regedDevices = list()
 authDevices = list()
 
-radio = threading.Semaphore(1)
+radio = threading.Lock()
 
 def main():
     # set the GPIO mode
@@ -26,6 +27,7 @@ def main():
     # init the serial interface
     ser = serial.Serial(port = '/dev/ttyAMA0')
     ser.baudrate = baud
+    ser.timeout = 0
 
     # start the randomization thread
     t = threading.Thread(target=randomize, args=(ser,))
@@ -40,15 +42,23 @@ def main():
     u.start()
     v.start()
 
-    print("Finished Init\n\r")
+    t.join()
+    u.join()
+    v.join()
 
+    print("Finished Init\n\r")
+    while 1:
+        time.sleep(0.5)
 
 # run the application
 # example packet: 70.150.145.199|80-AB-14-FA-9F-A7|Password123|Hello
 def receiver(ser):
+    print("Running receiver thread\n")
     while(1):
+        print("Acquiring lock for receiver\n")
         radio.acquire()
         data = ser.readline()
+        print("Released lock for receiver\n")
         radio.release()
         data = data.decode().split("|")
    
@@ -63,7 +73,7 @@ def receiver(ser):
         if(data[1] not in teamMACS):
             print("This is not a valid MAC address\n\r")
             radio.acquire()
-            ser.write("INV_MAC:" + data[1] + "\n")
+            #ser.write("INV_MAC:" + data[1] + "\n")
             radio.release()
             continue
         
@@ -75,62 +85,76 @@ def receiver(ser):
                 #ser.write("reg_dev:" + data[1] + "\n")
                 authDevices.append(data[1])
             else:
-                ser.write("AUTH_FAIL:")
+                #ser.write("AUTH_FAIL:")
                 continue
         else:
             print("This device has been authenticated\n\r")
-            ser.write("reg_dev:AUTH_VAL\n")
+            #ser.write("reg_dev:AUTH_VAL\n")
 
         parseCommand(data[3])
 
 
 
 def broadcastIP(serialObj, IP):
-    radio.acquire()
-    serialObj.write(IP)
-    radio.release()
-    print("Broadcasted my IP\n\r", flush=True)
-    sleep(1)
+    print("Running broadcast thread\n")
+    while(1):
+        print("Acquiring lock for broadcast")
+        radio.acquire()
+        print("Acquired lock for broadcast")
+        serialObj.write(IP)
+        radio.release()
+        print("Released lock for broadcast")
+        print("Broadcasted my IP\n\r")
+        time.sleep(1)
 
 
 def parseCommand(cmd):
     if(cmd == "Hello"):
         radio.acquire()
-        ser.write("cmd:Hello from HC-12\n\r", flush=True)
+        ser.write("cmd:Hello from HC-12\n\r")
         radio.release()
 
 
 def randomize(ser):
+    print("Running rando thread\n")
+    global channelSel
     while(1):
-        print("Randomizing...\n\r", flush=True)
+        print("Randomizing...\n\r")
         #generate random baud and broadcast channel
-        channel = channelSel * random.randint(0,20)
+        channel = channelSel + random.randint(0,20)
         baud = bauds[random.randint(0,7)]
-        
-        #setup the GPIO 
+        print("New settings:\n Baud: " + str(baud) + "\nChannel: " + str(channel))
+
+        #setup the GPIO
         GPIO.setup(selPin, GPIO.OUT)    # set the GPIO pin of transceiver select
         GPIO.output(selPin, GPIO.LOW)   # set the GPIO pin to enable commands on hc12
-        
+
         #write to the HC-12 in command mode
+        #print("Acquiring lock for randomizer")
         radio.acquire()
+        #print("Acquired lock for randomizer")
         ser.write("AT+C" + str(channel))
         ser.write("AT+B" + str(baud))
 
         #change the raspi baud rate
         ser.baudrate = baud
+        #print("Releasing lock for randomizer")
         radio.release()
     
         #clean up the GPIO port
-        GPIO.cleanup()
+        GPIO.output(selPin, GPIO.HIGH)
 
-        if(channel + 1 == 4):
-            channel = 1
+        if(channelSel + 20 == 80):
+            channelSel = 20
         else:
-            channel = channel + 1
+            channelSel = channelSel + 20
 
-        print("Finished randomizing, sleeping...\n\r", flush=True)
-        sleep(60)
+        print("Finished randomizing, sleeping...\n\r")
+        time.sleep(5)
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except KeyboardInterrupt:
+        exit()
