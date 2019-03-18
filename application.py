@@ -25,7 +25,7 @@ def main():
     GPIO.setmode(GPIO.BOARD)
     
     # init the serial interface
-    ser = serial.Serial(port = '/dev/ttyAMA0')
+    ser = serial.Serial(port = '/dev/serial0')
     ser.baudrate = baud
     ser.timeout = 0
 
