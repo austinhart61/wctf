@@ -5,12 +5,12 @@ import random
 import time
 
 # setup the GPIO pins / transceiver
-IP = "70.150.145.199".encode()
+IP = "70.150.145.199"
 teamMACS = ["5B-66-5A-D5-92-CC", "80-AB-14-FA-9F-A7"]
 teamPASS = ["Password321", "Password123"]
 
 selPin = 11
-channelSel = 1
+channelSel = 20
 
 baud = 9600
 bauds = [1200, 2400, 4800, 9600, 19200, 38400, 57600, 115200]
@@ -55,13 +55,14 @@ def main():
 def receiver(ser):
     print("Running receiver thread\n")
     while(1):
+        time.sleep(0.5)
         print("Acquiring lock for receiver\n")
         radio.acquire()
         data = ser.readline()
         print("Released lock for receiver\n")
         radio.release()
         data = data.decode().split("|")
-   
+        
         # check that the IP of this packet belongs to this node
         if(data[0] != IP):
             print("This packet belongs to IP: " + data[0] + "\n\r")
@@ -98,12 +99,10 @@ def receiver(ser):
 def broadcastIP(serialObj, IP):
     print("Running broadcast thread\n")
     while(1):
-        print("Acquiring lock for broadcast")
+        print("Broadcasting")
         radio.acquire()
-        print("Acquired lock for broadcast")
-        serialObj.write(IP)
+        #serialObj.write(IP)
         radio.release()
-        print("Released lock for broadcast")
         print("Broadcasted my IP\n\r")
         time.sleep(1)
 
@@ -133,8 +132,8 @@ def randomize(ser):
         #print("Acquiring lock for randomizer")
         radio.acquire()
         #print("Acquired lock for randomizer")
-        ser.write("AT+C" + str(channel))
-        ser.write("AT+B" + str(baud))
+        #ser.write("AT+C" + str(channel))
+        #ser.write("AT+B" + str(baud))
 
         #change the raspi baud rate
         ser.baudrate = baud
