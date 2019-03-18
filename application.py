@@ -3,9 +3,10 @@ import RPi.GPIO as GPIO
 import threading
 import random
 import time
+import argparse
 
 # setup the GPIO pins / transceiver
-IP = "70.150.145.199"
+IP = "70.150.145.199".encode()
 teamMACS = ["5B-66-5A-D5-92-CC", "80-AB-14-FA-9F-A7"]
 teamPASS = ["Password321", "Password123"]
 
@@ -15,28 +16,52 @@ channelSel = 20
 baud = 9600
 bauds = [1200, 2400, 4800, 9600, 19200, 38400, 57600, 115200]
 
+randoEnable = 1
+randoDelay = 300
+
 regedDevices = list()
 authDevices = list()
+
+# init the serial interface
+ser = serial.Serial(port = '/dev/serial0', baudrate = baud, timeout = 0)
 
 radio = threading.Lock()
 
 def main():
+    global IP
+    global selPin
+    global channelSel
+    global baud
+    global randoEnable
+    global randoDelay
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-i", "--ip", help="the IP address of this node", default="")
+    parser.add_argument("-s", "--select", help="Raspi select pin for the HC12", default=11, type=int)
+    parser.add_argument("-c", "--channel", help="select the scheduler for the channel that this node will run on", default=20, type=int)
+    parser.add_argument("-b", "--baud", help="initial baud rate of the node, likely to change with the randomizer", default=9600, type=int)
+    parser.add_argument("-r", "--rando", help="enable the randomizer on this node", default=0, type=int)
+    parser.add_argument("-d", "--delay", help="the time (seconds) to delay randomizing on this node", default=300, type=int)
+    args = parser.parse_args()
+    
+    IP = args.ip
+    selPin = args.select
+    channelSel = args.channel
+    baud = args.baud
+    randoEnable = args.rando
+    randoDelay = args.delay
+
     # set the GPIO mode
     GPIO.setmode(GPIO.BOARD)
     
-    # init the serial interface
-    ser = serial.Serial(port = '/dev/serial0')
-    ser.baudrate = baud
-    ser.timeout = 0
-
     # start the randomization thread
-    t = threading.Thread(target=randomize, args=(ser,))
+    t = threading.Thread(target=randomize)
 
     # start the broadcasting thread
-    u = threading.Thread(target=broadcastIP, args=(ser,IP,))
+    u = threading.Thread(target=broadcastIP)
 
     # start the receiver thread
-    v = threading.Thread(target=receiver, args=(ser,))
+    v = threading.Thread(target=receiver)
     
     t.start()
     u.start()
@@ -52,14 +77,12 @@ def main():
 
 # run the application
 # example packet: 70.150.145.199|80-AB-14-FA-9F-A7|Password123|Hello
-def receiver(ser):
+def receiver():
     print("Running receiver thread\n")
     while(1):
-        time.sleep(0.5)
-        print("Acquiring lock for receiver\n")
+        time.sleep(2)
         radio.acquire()
         data = ser.readline()
-        print("Released lock for receiver\n")
         radio.release()
         data = data.decode().split("|")
         
@@ -74,7 +97,7 @@ def receiver(ser):
         if(data[1] not in teamMACS):
             print("This is not a valid MAC address\n\r")
             radio.acquire()
-            #ser.write("INV_MAC:" + data[1] + "\n")
+            ser.write("INV_MAC:" + data[1] + "\n")
             radio.release()
             continue
         
@@ -83,7 +106,7 @@ def receiver(ser):
             print("Authenticating Device\n")
             if(data[2] in teamPASS):
                 print("Authenticating device: " + data[1] + "\n\r")
-                #ser.write("reg_dev:" + data[1] + "\n")
+                ser.write("reg_dev:" + data[1] + "\n")
                 authDevices.append(data[1])
             else:
                 #ser.write("AUTH_FAIL:")
@@ -96,15 +119,15 @@ def receiver(ser):
 
 
 
-def broadcastIP(serialObj, IP):
+def broadcastIP():
     print("Running broadcast thread\n")
     while(1):
         print("Broadcasting")
         radio.acquire()
-        #serialObj.write(IP)
+        ser.write(IP+"\r\n")
         radio.release()
-        print("Broadcasted my IP\n\r")
-        time.sleep(1)
+        print("Broadcasted my IP\r\n")
+        time.sleep(2)
 
 
 def parseCommand(cmd):
@@ -114,10 +137,10 @@ def parseCommand(cmd):
         radio.release()
 
 
-def randomize(ser):
+def randomize():
     print("Running rando thread\n")
     global channelSel
-    while(1):
+    while(randoEnable):
         print("Randomizing...\n\r")
         #generate random baud and broadcast channel
         channel = channelSel + random.randint(0,20)
@@ -132,8 +155,8 @@ def randomize(ser):
         #print("Acquiring lock for randomizer")
         radio.acquire()
         #print("Acquired lock for randomizer")
-        #ser.write("AT+C" + str(channel))
-        #ser.write("AT+B" + str(baud))
+        ser.write("AT+C" + str(channel))
+        ser.write("AT+B" + str(baud))
 
         #change the raspi baud rate
         ser.baudrate = baud
@@ -149,7 +172,7 @@ def randomize(ser):
             channelSel = channelSel + 20
 
         print("Finished randomizing, sleeping...\n\r")
-        time.sleep(5)
+        time.sleep(randoDelay)
 
 
 if __name__ == "__main__":
