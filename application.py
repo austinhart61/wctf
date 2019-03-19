@@ -6,7 +6,7 @@ import time
 import argparse
 
 # setup the GPIO pins / transceiver
-IP = "70.150.145.199".encode()
+IP = "70.150.145.199"
 teamMACS = ["5B-66-5A-D5-92-CC", "80-AB-14-FA-9F-A7"]
 teamPASS = ["Password321", "Password123"]
 
@@ -23,7 +23,15 @@ regedDevices = list()
 authDevices = list()
 
 # init the serial interface
-ser = serial.Serial(port = '/dev/serial0', baudrate = baud, timeout = 0)
+ser = serial.Serial(
+
+	port='/dev/serial0',
+	baudrate = baud,
+	parity=serial.PARITY_NONE,
+	stopbits=serial.STOPBITS_ONE,
+	bytesize=serial.EIGHTBITS,
+	timeout=1
+    )
 
 radio = threading.Lock()
 
@@ -72,14 +80,15 @@ def main():
     v.join()
 
     print("Finished Init\n\r")
-    while 1:
-        time.sleep(0.5)
+    while(1)
+        time.sleep(.5)
+
 
 # run the application
 # example packet: 70.150.145.199|80-AB-14-FA-9F-A7|Password123|Hello
 def receiver():
     print("Running receiver thread\n")
-    while(1):
+    while(0):
         time.sleep(2)
         radio.acquire()
         data = ser.readline()
@@ -121,10 +130,11 @@ def receiver():
 
 def broadcastIP():
     print("Running broadcast thread\n")
+    global IP, ser
     while(1):
         print("Broadcasting")
         radio.acquire()
-        ser.write(IP+"\r\n")
+        ser.write(IP)
         radio.release()
         print("Broadcasted my IP\r\n")
         time.sleep(2)
