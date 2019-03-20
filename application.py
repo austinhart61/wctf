@@ -111,7 +111,7 @@ def receiver():
             if(data[1] not in teamMACS):
                 print("This is not a valid MAC address\n\r")
                 radio.acquire()
-                ser.write("INV_MAC:" + data[1] + "\n")
+                ser.write("INV_MAC:" + str(data[1]) + "\n")
                 radio.release()
                 continue
         except IndexError:
@@ -119,18 +119,22 @@ def receiver():
             continue
 
         # check if the device has been authenticated before
-        if(data[1] not in authDevices):
-            print("Authenticating Device\n")
-            if(data[2] in teamPASS):
-                print("Authenticating device: " + data[1] + "\n\r")
-                ser.write("reg_dev:" + data[1] + "\n")
-                authDevices.append(data[1])
+        try:
+            if(data[1] not in authDevices):
+                print("Authenticating Device\n")
+                if(data[2] in teamPASS):
+                    print("Authenticating device: " + data[1] + "\n\r")
+                    ser.write("reg_dev:" + str(data[1]) + "\n")
+                    authDevices.append(data[1])
+                else:
+                    ser.write("AUTH_FAIL:\n")
+                    continue
             else:
-                #ser.write("AUTH_FAIL:")
-                continue
-        else:
-            print("This device has been authenticated\n\r")
-            #ser.write("reg_dev:AUTH_VAL\n")
+                print("This device has been authenticated\n\r")
+                ser.write("reg_dev:AUTH_VAL\n")
+        except IndexError:
+            print("Incomplete packet structure detected")
+            continue
 
         parseCommand(data[3])
 
@@ -161,28 +165,33 @@ def randomize():
     while(randoEnable):
         print("Randomizing...\n\r")
         #generate random baud and broadcast channel
-        channel = channelSel + random.randint(0,20)
+        channel = channelSel + random.randint(0,19)
         baud = bauds[random.randint(0,7)]
         print("New settings:\n Baud: " + str(baud) + "\nChannel: " + str(channel))
 
         #setup the GPIO
         GPIO.setup(selPin, GPIO.OUT)    # set the GPIO pin of transceiver select
         GPIO.output(selPin, GPIO.LOW)   # set the GPIO pin to enable commands on hc12
-
+        time.sleep(.5)
         #write to the HC-12 in command mode
         #print("Acquiring lock for randomizer")
         radio.acquire()
         #print("Acquired lock for randomizer")
-        ser.write("AT+C" + str(channel))
+        ser.write("AT+C0" + str(channel))
+        message = ser.readline()
+        print(message)
         ser.write("AT+B" + str(baud))
-
+        message = ser.readline()
+        print(message)
         #change the raspi baud rate
         ser.baudrate = baud
+
         #print("Releasing lock for randomizer")
         radio.release()
     
         #clean up the GPIO port
         GPIO.output(selPin, GPIO.HIGH)
+        time.sleep(.5)
 
         if(channelSel + 20 == 80):
             channelSel = 20
