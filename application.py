@@ -9,8 +9,13 @@ import argparse
 
 # setup the GPIO pins / transceiver
 IP = "1.2.3.4"
-teamMACS = ["5B-66-5A-D5-92-CC", "80-AB-14-FA-9F-A7"]
-teamPASS = ["Password321", "Password123"]
+macArray = open("team_macs.txt", "r")
+teamMACS = macArray.read().split("\n")
+macArray.close()
+
+passArray = open("team_pass.txt", "r")
+teamPASS = passArray.read().split("\n")
+passArray.close()
 
 selPin = 11
 channelSel = 20
