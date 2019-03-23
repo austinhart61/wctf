@@ -17,6 +17,10 @@ passArray = open("team_pass.txt", "r")
 teamPASS = passArray.read().split("\n")
 passArray.close()
 
+flagArray = open("team_flags.txt", "r")
+teamFLAGS = flagArray.read().split("\n")
+flagArray.close()
+
 selPin = 11
 channelSel = 20
 
@@ -28,6 +32,8 @@ randoDelay = 300
 
 regedDevices = list()
 authDevices = list()
+
+index = 0
 
 # init the serial interface
 ser = serial.Serial(
@@ -94,6 +100,8 @@ def main():
 # run the application
 # example packet: 70.150.145.199|80-AB-14-FA-9F-A7|Password123|Hello
 def receiver():
+    global index
+
     print("Running receiver thread\n")
     while(1):
         time.sleep(2)
@@ -123,20 +131,28 @@ def receiver():
             print("Incomplete packet structure detected")
             continue
 
+        index = teamMACS.index(str(data[1]))
+
         # check if the device has been authenticated before
         try:
             if(data[1] not in authDevices):
                 print("Authenticating Device\n")
-                if(data[2] in teamPASS):
+                if(data[2] == teamPASS[index]):
                     print("Authenticating device: " + data[1] + "\n\r")
+                    radio.acquire()
                     ser.write("reg_dev:" + str(data[1]) + "\n")
+                    radio.release()
                     authDevices.append(data[1])
                 else:
+                    radio.acquire()
                     ser.write("AUTH_FAIL:\n")
+                    radio.release()
                     continue
             else:
                 print("This device has been authenticated\n\r")
+                radio.acquire()
                 ser.write("reg_dev:AUTH_VAL\n")
+                radio.release()
         except IndexError:
             print("Incomplete packet structure detected")
             continue
@@ -161,6 +177,10 @@ def parseCommand(cmd):
     if(cmd == "Hello"):
         radio.acquire()
         ser.write("cmd:Hello from HC-12\n\r")
+        radio.release()
+    elif(cmd == "get_flag"):
+        radio.acquire()
+        ser.write("cmd:" + str(teamFLAGS[index]) + "\n")
         radio.release()
 
 
