@@ -140,7 +140,7 @@ def receiver():
                 if(data[2] == teamPASS[index]):
                     print("Authenticating device: " + data[1] + "\n\r")
                     radio.acquire()
-                    ser.write("reg_dev:" + str(data[1]) + "\n")
+                    ser.write("reg_dev:" + str(data[1]) + "\n" + "Now run the command get_flag\n")
                     radio.release()
                     authDevices.append(data[1])
                 else:
@@ -153,11 +153,15 @@ def receiver():
                 radio.acquire()
                 ser.write("reg_dev:AUTH_VAL\n")
                 radio.release()
+                if(data[2] == "get_flag"):
+                    parseCommand(data[2])
+                else:
+                    radio.acquire()
+                    ser.write("cmd:INV_COMMAND\n")
+                    radio.release()
         except IndexError:
             print("Incomplete packet structure detected")
             continue
-
-        parseCommand(data[3])
 
 
 
