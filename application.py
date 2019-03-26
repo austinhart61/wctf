@@ -167,10 +167,11 @@ def broadcastIP():
     while(1):
         print("Broadcasting")
         radio.acquire()
+        ser.write("                                                                                                                                                                                                                                                                                                                                                                                                                              " + IP + "\n")
         ser.write(IP+'\n')
         radio.release()
         print("Broadcasted my IP\r\n")
-        time.sleep(2)
+        time.sleep(.5)
 
 
 def parseCommand(cmd):
