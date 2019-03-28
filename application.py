@@ -17,7 +17,7 @@ passArray = open("team_pass.txt", "r")
 teamPASS = passArray.read().split("\n")
 passArray.close()
 
-flagArray = open("team_flags.txt", "r")
+flagArray = open("team_flags3.txt", "r")
 teamFLAGS = flagArray.read().split("\n")
 flagArray.close()
 
@@ -108,17 +108,21 @@ def receiver():
         radio.acquire()
         data = ser.readline()
         radio.release()
-        data = data.decode().split("|")
-        
+        try:
+            data = data.decode().split("|")
+        except:
+            continue
         # check that the IP of this packet belongs to this node
-        if(data[0] == IP):
-            print("This packet belongs to this node\n")
-        elif(data[0] != IP):
-            print("This packet belongs to IP: " + data[0] + "\n\r")
+        try:
+            if(data[0] == IP):
+                print("This packet belongs to this node\n")
+            elif(data[0] != IP):
+                print("This packet belongs to IP: " + data[0] + "\n\r")
+                continue
+            else:
+                continue
+        except:
             continue
-        else:
-            continue
-        
         # check that the MAC address is in the list of team MACs
         try:
             if(data[1] not in teamMACS):
@@ -206,16 +210,24 @@ def randomize():
         #write to the HC-12 in command mode
         #print("Acquiring lock for randomizer")
         radio.acquire()
+        ser.close()
+        ser.open()
         #print("Acquired lock for randomizer")
         ser.write("AT+C0" + str(channel))
         message = ser.readline()
-        print(message)
+        while(message != "OK+C0"+str(channel)+"\r\n"):
+            ser.write("AT+C0"+str(channel))
+            message = ser.readline()
+            print(message)
         ser.write("AT+B" + str(baud))
-        message = ser.readline()
-        print(message)
+        while(message != "OK+B"+str(baud)+"\r\n"):
+            ser.write("AT+B"+str(baud))
+            message = ser.readline()
+            print(message)
         #change the raspi baud rate
         ser.baudrate = baud
-
+        ser.close()
+        ser.open()
         #print("Releasing lock for randomizer")
         radio.release()
     
