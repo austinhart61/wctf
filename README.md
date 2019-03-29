@@ -11,4 +11,11 @@
 \
 +++ reset the HC12 +++\
 \
-runs "AT+DEFAULT" resetting baud and channel
+runs "AT+DEFAULT" resetting baud and channel\
+\
++++ IP's used in this challenge +++\
+97.121.215.176
+166.248.98.36
+251.236.64.145
+63.180.94.100
+167.251.78.6
