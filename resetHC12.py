@@ -29,6 +29,11 @@ while 1:
         ser.baudrate = bauds[index]
         index = (index + 1) % 8
         print("trying next baud: " + str(bauds[index]))
+        
+ser.write("AT+P5")
+response = ser.readline()
+if(response == "OK+P5\r\n"):
+    print("set at tx power level P5: " + response)
 
 GPIO.cleanup()
 
