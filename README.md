@@ -28,3 +28,5 @@ runs "AT+DEFAULT" resetting baud and channel\
 63.180.94.100\
 167.251.78.6\
 \
+
+email ajhartshorn@wpi.edu with any questions. 
