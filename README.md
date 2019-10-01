@@ -1,5 +1,13 @@
 # wctf
 
++++ Infos +++\
+- The raspberry pi's simulate a node in a network with an 'IP' and 'MAC' address. Students are to determine the makeshift packet structure and wirelessy communicate with the nodes depending on the various return codes. \
+- To make the challenge harder, the nodes scramble their broadcasting frequency and baud rate. When looking on a SDR it should look like a BFSK pulsing signal. \
+- application.py runs on a Raspberry Pi Zero W. Installing some kind of SSH on this is super handy to remotely admin. \
+- the HC-12 likes to occasionally hang when scrambling baud rate. I have yet to determine the root cause but it would happen randomly after ~12 hours of continuously running. \
+- This is a pretty basic implementation, the idea was conceived, designed, debugged (as best as possible), and rolled out in a span of 3 weeks. \
+
+
 +++ To run application.py +++\
 
 -i set the IP for the node\
